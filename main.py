@@ -54,9 +54,9 @@ def handle_message(event):
           msg = 'グー'
         elif event.message.text == 'パー':
           msg = 'チョキ'
-        elif event.message.text == '食事登録':
+        elif event.message.text == '食事投稿':
           msg = "食事の画像を送ってください"
-        elif event.message.text == '運動投稿':
+        elif event.message.text == '運動報告':
           msg = "運動を評価してください"
         else:
           msg = 'ごめんね。\nまだ他のメッセージには対応してないよ'
