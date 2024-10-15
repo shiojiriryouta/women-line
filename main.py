@@ -76,14 +76,6 @@ def handle_image_message(event):
     
     # 画像データを取得する
     message_content = api_client.get_message_content(message_id)
-    
-    # 保存先のパスを指定
-    file_path = f'static/{message_id}.jpg'
-    
-    # 画像を保存する
-    with open(file_path, 'wb') as fd:
-      for chunk in message_content:
-        fd.write(chunk)
 
     # ユーザーに画像を受け取ったことを通知するメッセージを送信
     line_bot_api = MessagingApi(api_client)
