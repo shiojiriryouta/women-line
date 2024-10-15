@@ -71,11 +71,11 @@ def handle_message(event):
 @handler.add(MessageEvent, message=ImageMessageContent)
 def handle_image_message(event):
   with ApiClient(configuration) as api_client:
-    # 画像メッセージのIDを取得
-    message_id = event.message.id
+    # # 画像メッセージのIDを取得
+    # message_id = event.message.id
     
-    # 画像データを取得する
-    message_content = api_client.get_message_content(message_id)
+    # # 画像データを取得する
+    # message_content = api_client.get_message_content(message_id)
 
     # ユーザーに画像を受け取ったことを通知するメッセージを送信
     line_bot_api = MessagingApi(api_client)
