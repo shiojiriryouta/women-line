@@ -11,7 +11,8 @@ from linebot.v3.messaging import (
   ApiClient,
   MessagingApi,
   ReplyMessageRequest,
-  TextMessage
+  TextMessage,
+  ImageMessage
 )
 from linebot.v3.webhooks import (
   MessageEvent,
@@ -57,7 +58,7 @@ def handle_message(event):
     elif event.message.text == '運動報告':
       msg = "運動を評価してください"
     else:
-      msg = 'ごめんね。\nまだ他のメッセージには対応してないよ'
+      msg = '1ごめんね。\nまだ他のメッセージには対応してないよ'
 
     line_bot_api = MessagingApi(api_client)
     line_bot_api.reply_message_with_http_info(
@@ -71,20 +72,34 @@ def handle_message(event):
 @handler.add(MessageEvent, message=ImageMessageContent)
 def handle_image_message(event):
   with ApiClient(configuration) as api_client:
-    # # 画像メッセージのIDを取得
-    # message_id = event.message.id
+    # MessagingApiオブジェクトを作成
+    messaging_api = MessagingApi(api_client)
+
+    # 画像メッセージのIDを取得
+    message_id = event.message.id
     
     # # 画像データを取得する
-    # message_content = api_client.get_message_content(message_id)
+    # message_content = messaging_api.get_message_content(message_id)
+
+    # # 保存先のパスを指定
+    # directory = 'static'
+    # if not os.path.exists(directory):
+    #   os.makedirs(directory)
+    # file_path = f'{directory}/{message_id}.jpg'
+
+    # # 画像を保存する
+    # with open(file_path, 'wb') as fd:
+    #   for chunk in message_content:
+    #     fd.write(chunk)
 
     # ユーザーに画像を受け取ったことを通知するメッセージを送信
-    line_bot_api = MessagingApi(api_client)
-    line_bot_api.reply_message_with_http_info(
+    messaging_api.reply_message_with_http_info(
       ReplyMessageRequest(
         reply_token=event.reply_token,
-        messages=[TextMessage(text="画像を受け取りました！")]
+        messages=[TextMessage(text="美味しそうな料理ですね！")]
       )
     )
+
 
 if __name__ == "__main__":
   port = int(os.getenv("PORT", 5001))
