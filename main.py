@@ -56,6 +56,8 @@ def handle_message(event):
         reply = FlexSendMessage(alt_text = "正解",contents = quiz_true)
     elif event.message.text == "[1]" or event.message.text == "[3]":
         reply = FlexSendMessage(alt_text = "不正解",contents = quiz_false)
+    elif event.message.text == "ペットを見る":
+        reply = FlexSendMessage(alt_text = "ペットの状態",contents = check_pet)
     else:
         reply = TextSendMessage(text=event.message.text)
     line_bot_api.reply_message(
@@ -71,6 +73,139 @@ def handle_image_message(event):
         event.reply_token,
         reply
     )
+
+check_pet = {
+    "type": "bubble",
+    "hero": {
+        "type": "image",
+        "url": "https://i.imgur.com/UDU7MpH.png",
+        "size": "3xl",
+        "aspectRatio": "13:13",
+        "aspectMode": "cover",
+        "action": {
+        "type": "uri",
+        "uri": "https://line.me/"
+        },
+        "margin": "xl"
+    },
+    "body": {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+        {
+            "type": "text",
+            "text": "ワイはまあまあ元気",
+            "weight": "bold",
+            "size": "xl"
+        },
+        {
+            "type": "text",
+            "text": "Health Level",
+            "margin": "sm",
+            "size": "lg",
+            "decoration": "none",
+            "weight": "bold"
+        },
+        {
+            "type": "box",
+            "layout": "baseline",
+            "contents": [
+            {
+                "type": "icon",
+                "url": "https://icons.iconarchive.com/icons/designbolts/free-valentine-heart/48/Heart-icon.png",
+                "margin": "sm"
+            },
+            {
+                "type": "icon",
+                "url": "https://icons.iconarchive.com/icons/designbolts/free-valentine-heart/48/Heart-icon.png",
+                "margin": "sm"
+            },
+            {
+                "type": "icon",
+                "url": "https://icons.iconarchive.com/icons/designbolts/free-valentine-heart/48/Heart-icon.png",
+                "margin": "sm"
+            },
+            {
+                "type": "icon",
+                "url": "https://cdn-icons-png.flaticon.com/256/1077/1077035.png",
+                "margin": "sm"
+            },
+            {
+                "type": "icon",
+                "url": "https://cdn-icons-png.flaticon.com/256/1077/1077035.png",
+                "margin": "sm"
+            },
+            {
+                "type": "icon",
+                "url": "https://cdn-icons-png.flaticon.com/256/1077/1077035.png",
+                "margin": "sm"
+            }
+            ]
+        },
+        {
+            "type": "separator"
+        },
+        {
+            "type": "text",
+            "text": "あさごはんが食べられて調子がいいにゃああああああああああああああああああああああああああああああああああああああああん",
+            "wrap": True,
+            "weight": "regular",
+            "style": "normal",
+            "decoration": "none",
+            "align": "start",
+            "scaling": True,
+            "margin": "md"
+        },
+        {
+            "type": "text",
+            "text": "\nけどもっと食べたり運動したりしたいにゃあああああああああああああああああああああああああああああああああああああああああああああああん",
+            "wrap": True
+        }
+        ]
+    },
+    "footer": {
+        "type": "box",
+        "layout": "vertical",
+        "spacing": "sm",
+        "contents": [
+        {
+            "type": "button",
+            "action": {
+            "type": "message",
+            "label": "食事を投稿する",
+            "text": "食事投稿"
+            },
+            "style": "primary",
+            "height": "sm",
+            "offsetTop": "none",
+            "color": "#4374b9"
+        },
+        {
+            "type": "button",
+            "action": {
+            "type": "message",
+            "label": "運動を報告する",
+            "text": "運動報告"
+            },
+            "style": "primary",
+            "height": "sm",
+            "offsetTop": "none",
+            "color": "#4374b9"
+        },
+        {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [],
+            "margin": "sm"
+        },
+        {
+            "type": "filler",
+            "flex": 0
+        }
+        ],
+        "flex": 0
+    }
+}
 quiz_false = {
     "type": "bubble",
     "hero": {
