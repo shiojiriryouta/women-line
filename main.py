@@ -1,106 +1,641 @@
-import os
-from flask import Flask, abort, request
-from linebot.v3.webhook import (
-  WebhookHandler
+import config 
+from flask import Flask, request, abort
+
+from linebot import (
+    LineBotApi, WebhookHandler
 )
-from linebot.v3.exceptions import (
-  InvalidSignatureError
+from linebot.exceptions import (
+    InvalidSignatureError
 )
-from linebot.v3.messaging import (
-  Configuration,
-  ApiClient,
-  MessagingApi,
-  ReplyMessageRequest,
-  TextMessage,
-  ImageMessage
+from linebot.models import (
+    MessageEvent, TextMessage, TextSendMessage, ImageMessage,FlexSendMessage
 )
-from linebot.v3.webhooks import (
-  MessageEvent,
-  TextMessageContent,
-  ImageMessageContent
-)
+import json
+
 
 app = Flask(__name__)
 
-handler = WebhookHandler('7a3925e8912d4270678e1f9f4523e1d5')
-configuration = Configuration(access_token='CS1Ne2sz1cKWnpQMFn0ZKsgJa70r/1wdBOQgCCnI0I+j+2cugXO6fsVqLF6wZTIWXtQNjNWyx1UVh6k9hZ3Kv09ZzPwPwJn0ssf+TDxM17ma91WzMi43ZxCD0M1flRzkTwTyMQeL2NhLUkIcVcEmIgdB04t89/1O/w1cDnyilFU=')
+line_bot_api = LineBotApi(config.LINE_CHANNEL_ACCESS_TOKEN)    
+handler = WebhookHandler(config.LINE_CHANNEL_SECRET)    
+
 
 @app.route("/callback", methods=['POST'])
 def callback():
-  # get X-Line-Signature header value
-  signature = request.headers['X-Line-Signature']
+    # get X-Line-Signature header value
+    signature = request.headers['X-Line-Signature']
 
-  # get request body as text
-  body = request.get_data(as_text=True)
-  app.logger.info("Request body: " + body)
+    # get request body as text
+    body = request.get_data(as_text=True)
+    app.logger.info("Request body: " + body)
 
-  # handle webhook body
-  try:
-    handler.handle(body, signature)
-  except InvalidSignatureError:
-    app.logger.info("Invalid signature. Please check your channel access token/channel secret.")
-    abort(400)
+    # handle webhook body
+    try:
+        handler.handle(body, signature)
+    except InvalidSignatureError:
+        print("Invalid signature. Please check your channel access token/channel secret.")
+        abort(400)
 
-  return 'OK'
+    return 'OK'
 
-@handler.add(MessageEvent, message=TextMessageContent)
+
+@handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-  with ApiClient(configuration) as api_client:
-    #相手の送信した内容で条件分岐して回答を変数に代入
-    if event.message.text == 'グー':
-      msg = 'パー'
-    elif event.message.text == 'チョキ':
-      msg = 'グー'
-    elif event.message.text == 'パー':
-      msg = 'チョキ'
-    elif event.message.text == '食事投稿':
-      msg = "食事の画像を送ってください"
-    elif event.message.text == '運動報告':
-      msg = "運動を評価してください"
-    else:
-      msg = '1ごめんね。\nまだ他のメッセージには対応してないよ'
-
-    line_bot_api = MessagingApi(api_client)
-    line_bot_api.reply_message_with_http_info(
-      ReplyMessageRequest(
-        reply_token=event.reply_token,
-        messages=[TextMessage(text=msg)]
-      )
-    )
-
-# 画像メッセージを処理するハンドラを追加
-@handler.add(MessageEvent, message=ImageMessageContent)
-def handle_image_message(event):
-  with ApiClient(configuration) as api_client:
-    # MessagingApiオブジェクトを作成
-    messaging_api = MessagingApi(api_client)
-
-    # 画像メッセージのIDを取得
-    message_id = event.message.id
+    if event.reply_token == "00000000000000000000000000000000":
+        return
     
-    # # 画像データを取得する
-    # message_content = messaging_api.get_message_content(message_id)
-
-    # # 保存先のパスを指定
-    # directory = 'static'
-    # if not os.path.exists(directory):
-    #   os.makedirs(directory)
-    # file_path = f'{directory}/{message_id}.jpg'
-
-    # # 画像を保存する
-    # with open(file_path, 'wb') as fd:
-    #   for chunk in message_content:
-    #     fd.write(chunk)
-
-    # ユーザーに画像を受け取ったことを通知するメッセージを送信
-    messaging_api.reply_message_with_http_info(
-      ReplyMessageRequest(
-        reply_token=event.reply_token,
-        messages=[TextMessage(text="美味しそうな料理ですね！")]
-      )
+    if event.message.text == "食事投稿":
+        reply = TextSendMessage(text="食事の画像を送ってくださいにゃん")
+    elif event.message.text == "運動報告":
+        container_obj = FlexSendMessage(alt_text = "運動報告をしてください",contents = sport_post)
+        reply = container_obj
+    elif event.message.text == "運動評価完了":
+        reply = TextSendMessage(text="運動おつかれにゃん")
+    elif event.message.text == "健康クイズ":
+        reply = FlexSendMessage(alt_text = "健康クイズ",contents = quiz_test)
+    elif event.message.text == "[2]":
+        reply = FlexSendMessage(alt_text = "正解",contents = quiz_true)
+    elif event.message.text == "[1]" or event.message.text == "[3]":
+        reply = FlexSendMessage(alt_text = "不正解",contents = quiz_false)
+    else:
+        reply = TextSendMessage(text=event.message.text)
+    line_bot_api.reply_message(
+        event.reply_token,
+        reply
     )
 
+# 画像メッセージのハンドラ
+@handler.add(MessageEvent, message=ImageMessage)
+def handle_image_message(event):
+    reply = TextSendMessage(text="美味しそうな料理ですね")
+    line_bot_api.reply_message(
+        event.reply_token,
+        reply
+    )
+quiz_false = {
+    "type": "bubble",
+    "hero": {
+        "type": "image",
+        "url": "https://tyoudoii-illust.com/wp-content/uploads/2021/01/NG_woman_color.png",
+        "size": "3xl",
+        "aspectRatio": "10:13",
+        "aspectMode": "cover",
+        "action": {
+        "type": "uri",
+        "uri": "https://line.me/"
+        },
+        "margin": "xl"
+    },
+    "body": {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+        {
+            "type": "box",
+            "layout": "horizontal",
+            "contents": [
+            {
+                "type": "text",
+                "text": "✗",
+                "weight": "bold",
+                "size": "xl",
+                "color": "#4374b9"
+            },
+            {
+                "type": "text",
+                "text": "不正解！",
+                "weight": "bold",
+                "size": "xl",
+                "flex": 8
+            }
+            ]
+        },
+        {
+            "type": "text",
+            "text": "正解は[2] 運動器の障害です。\n\n運動器の障害のために移動機能の低下をきたした状態を 「ロコモティブシンドローム」＝ロコモといいます。",
+            "wrap": True,
+            "weight": "regular",
+            "style": "normal",
+            "decoration": "none",
+            "align": "start",
+            "scaling": True,
+            "margin": "md"
+        }
+        ]
+    },
+    "footer": {
+        "type": "box",
+        "layout": "vertical",
+        "spacing": "sm",
+        "contents": [
+        {
+            "type": "button",
+            "action": {
+            "type": "uri",
+            "label": "ロコモについて知る",
+            "uri": "https://locomo-joa.jp/locomo"
+            },
+            "style": "primary",
+            "height": "sm",
+            "offsetTop": "none",
+            "color": "#e84f16"
+        },
+        {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [],
+            "margin": "sm"
+        },
+        {
+            "type": "filler",
+            "flex": 0
+        }
+        ],
+        "flex": 0
+    }
+}
 
+quiz_true = {
+    "type": "bubble",
+    "hero": {
+        "type": "image",
+        "url": "https://tyoudoii-illust.com/wp-content/uploads/2024/07/oksign_woman_color.png",
+        "size": "4xl",
+        "aspectRatio": "12:13",
+        "aspectMode": "cover",
+        "action": {
+        "type": "uri",
+        "uri": "https://line.me/"
+        },
+        "margin": "xl"
+    },
+    "body": {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+        {
+            "type": "box",
+            "layout": "horizontal",
+            "contents": [
+            {
+                "type": "text",
+                "text": "○",
+                "weight": "bold",
+                "size": "xl",
+                "color": "#4374b9"
+            },
+            {
+                "type": "text",
+                "text": "正解！",
+                "weight": "bold",
+                "size": "xl",
+                "flex": 8
+            }
+            ]
+        },
+        {
+            "type": "text",
+            "text": "要支援、要介護になる原因のトップは転倒、骨折や関節の病気など運動器の故障です。\n\n運動器の障害のために移動機能の低下をきたした状態を 「ロコモティブシンドローム」＝ロコモといいます。厚生労働省2019年国民生活基礎調査では要介護・要支援のとなった人の24.8%の原因が運動器の障害となっています。",
+            "wrap": True,
+            "weight": "regular",
+            "style": "normal",
+            "decoration": "none",
+            "align": "start",
+            "scaling": True,
+            "margin": "md"
+        }
+        ]
+    },
+    "footer": {
+        "type": "box",
+        "layout": "vertical",
+        "spacing": "sm",
+        "contents": [
+        {
+            "type": "button",
+            "action": {
+            "type": "uri",
+            "label": "ロコモについて知る",
+            "uri": "https://locomo-joa.jp/locomo"
+            },
+            "style": "primary",
+            "height": "sm",
+            "offsetTop": "none",
+            "color": "#e84f16"
+        },
+        {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [],
+            "margin": "sm"
+        },
+        {
+            "type": "filler",
+            "flex": 0
+        }
+        ],
+        "flex": 0
+    }
+}
+
+quiz_test = {
+    "type": "bubble",
+    "hero": {
+        "type": "image",
+        "url": "https://soco-st.com/wp-content/uploads/2022/04/settled_senior_13166_color.png?modified=1659869088",
+        "size": "full",
+        "aspectRatio": "22:13",
+        "aspectMode": "cover",
+        "action": {
+        "type": "uri",
+        "uri": "https://line.me/"
+        },
+        "margin": "xl"
+    },
+    "body": {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+        {
+            "type": "text",
+            "text": "健康クイズ",
+            "weight": "bold",
+            "size": "xl"
+        },
+        {
+            "type": "text",
+            "text": "高齢者が要支援・要介護になる原因で最も多いのは次のうちどれ？",
+            "wrap": True,
+            "weight": "regular",
+            "style": "normal",
+            "decoration": "none",
+            "align": "start",
+            "scaling": True,
+            "margin": "md"
+        }
+        ]
+    },
+    "footer": {
+        "type": "box",
+        "layout": "vertical",
+        "spacing": "sm",
+        "contents": [
+        {
+            "type": "button",
+            "style": "primary",
+            "height": "sm",
+            "action": {
+            "type": "message",
+            "label": "[1] 高齢による衰弱",
+            "text": "[1]"
+            },
+            "color": "#4374b9"
+        },
+        {
+            "type": "button",
+            "style": "primary",
+            "height": "sm",
+            "action": {
+            "type": "message",
+            "label": "[2] 運動器の障害",
+            "text": "[2]"
+            },
+            "color": "#4374b9"
+        },
+        {
+            "type": "button",
+            "action": {
+            "type": "message",
+            "label": "[3]認知症",
+            "text": "[3]"
+            },
+            "style": "primary",
+            "height": "sm",
+            "offsetTop": "none",
+            "color": "#4374b9"
+        },
+        {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [],
+            "margin": "sm"
+        },
+        {
+            "type": "filler",
+            "flex": 0
+        }
+        ],
+        "flex": 0
+    }
+}
+
+sport_post = {
+    "type": "bubble",
+    "hero": {
+        "type": "image",
+        "url": "https://tyoudoii-illust.com/wp-content/uploads/2021/03/preparatorymovement_woman_%E3%82%B5%E3%83%A0%E3%83%8D.png",
+        "size": "full",
+        "aspectRatio": "13:13",
+        "aspectMode": "cover",
+        "action": {
+        "type": "uri",
+        "uri": "https://line.me/"
+        },
+        "margin": "xl"
+    },
+    "body": {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+        {
+            "type": "text",
+            "text": "運動の評価",
+            "weight": "bold",
+            "size": "xl"
+        },
+        {
+            "type": "text",
+            "text": "本日行った運動を運動量に応じて評価してください",
+            "wrap": True,
+            "weight": "regular",
+            "style": "normal",
+            "decoration": "none",
+            "align": "start",
+            "scaling": True,
+            "margin": "md"
+        },
+        {
+            "type": "box",
+            "layout": "baseline",
+            "margin": "md",
+            "contents": [
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gold_star_28.png"
+            },
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gold_star_28.png"
+            },
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gold_star_28.png"
+            },
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gold_star_28.png"
+            },
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gold_star_28.png"
+            },
+            {
+                "type": "text",
+                "text": "3~4時間のランニング程度",
+                "size": "sm",
+                "color": "#999999",
+                "margin": "md",
+                "flex": 0
+            }
+            ]
+        },
+        {
+            "type": "box",
+            "layout": "baseline",
+            "margin": "md",
+            "contents": [
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gold_star_28.png"
+            },
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gold_star_28.png"
+            },
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gold_star_28.png"
+            },
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gold_star_28.png"
+            },
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gray_star_28.png"
+            },
+            {
+                "type": "text",
+                "text": "1~2時間のランニング程度",
+                "size": "sm",
+                "color": "#999999",
+                "margin": "md",
+                "flex": 0
+            }
+            ]
+        },
+        {
+            "type": "box",
+            "layout": "baseline",
+            "margin": "md",
+            "contents": [
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gold_star_28.png"
+            },
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gold_star_28.png"
+            },
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gold_star_28.png"
+            },
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gray_star_28.png"
+            },
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gray_star_28.png"
+            },
+            {
+                "type": "text",
+                "text": "数十分のランニング程度",
+                "size": "sm",
+                "color": "#999999",
+                "margin": "md",
+                "flex": 0
+            }
+            ]
+        },
+        {
+            "type": "box",
+            "layout": "baseline",
+            "margin": "md",
+            "contents": [
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gold_star_28.png"
+            },
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gold_star_28.png"
+            },
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gray_star_28.png"
+            },
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gray_star_28.png"
+            },
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gray_star_28.png"
+            },
+            {
+                "type": "text",
+                "text": "数十分のウォーキング程度",
+                "size": "sm",
+                "color": "#999999",
+                "margin": "md",
+                "flex": 0
+            }
+            ]
+        },
+        {
+            "type": "box",
+            "layout": "baseline",
+            "margin": "md",
+            "contents": [
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gold_star_28.png"
+            },
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gray_star_28.png"
+            },
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gray_star_28.png"
+            },
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gray_star_28.png"
+            },
+            {
+                "type": "icon",
+                "size": "sm",
+                "url": "https://developers-resource.landpress.line.me/fx/img/review_gray_star_28.png"
+            },
+            {
+                "type": "text",
+                "text": "家の中で歩き回った程度",
+                "size": "sm",
+                "color": "#999999",
+                "margin": "md",
+                "flex": 0
+            }
+            ]
+        }
+        ]
+    },
+    "footer": {
+        "type": "box",
+        "layout": "vertical",
+        "spacing": "sm",
+        "contents": [
+        {
+            "type": "button",
+            "style": "primary",
+            "height": "sm",
+            "action": {
+            "type": "message",
+            "label": "★★★★★",
+            "text": "運動評価完了"
+            }
+        },
+        {
+            "type": "button",
+            "style": "primary",
+            "height": "sm",
+            "action": {
+            "type": "message",
+            "label": "★★★★☆",
+            "text": "運動評価完了"
+            }
+        },
+        {
+            "type": "button",
+            "action": {
+            "type": "message",
+            "label": "★★★☆☆",
+            "text": "運動評価完了"
+            },
+            "style": "primary",
+            "height": "sm",
+            "offsetTop": "none"
+        },
+        {
+            "type": "button",
+            "action": {
+            "type": "message",
+            "label": "★★☆☆☆",
+            "text": "運動評価完了"
+            },
+            "position": "relative",
+            "style": "primary",
+            "height": "sm"
+        },
+        {
+            "type": "button",
+            "action": {
+            "type": "message",
+            "label": "★☆☆☆☆",
+            "text": "運動評価完了"
+            },
+            "style": "primary",
+            "height": "sm"
+        },
+        {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [],
+            "margin": "sm"
+        },
+        {
+            "type": "filler",
+            "flex": 0
+        }
+        ],
+        "flex": 0
+    }
+}
 if __name__ == "__main__":
-  port = int(os.getenv("PORT", 5001))
-  app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="localhost", port=5001, debug=True)
+
