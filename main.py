@@ -11,13 +11,15 @@ from linebot.models import (
     MessageEvent, TextMessage, TextSendMessage, ImageMessage,FlexSendMessage
 )
 import json
-
+from openai import OpenAI
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 
 line_bot_api = LineBotApi(config.LINE_CHANNEL_ACCESS_TOKEN)    
 handler = WebhookHandler(config.LINE_CHANNEL_SECRET)    
-
+load_dotenv()
+client = OpenAI()
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -59,7 +61,17 @@ def handle_message(event):
     elif event.message.text == "ペットを見る":
         reply = FlexSendMessage(alt_text = "ペットの状態",contents = check_pet)
     else:
-        reply = TextSendMessage(text=event.message.text)
+        completion = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "あなたは猫のマスコットです。栄養に関する知識にとても精通しています。あなたの話す言葉は日本語で30文字以下です。語尾にニャンと付けます。"},
+                {
+                    "role": "user",
+                    "content": event.message.text
+                }
+            ]
+        )
+        reply = TextSendMessage(text=completion.choices[0].message.content)
     line_bot_api.reply_message(
         event.reply_token,
         reply
