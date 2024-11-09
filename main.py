@@ -183,9 +183,9 @@ check_pet = {
         {
             "type": "button",
             "action": {
-            "type": "message",
+            "type": "uri",
             "label": "食事を投稿する",
-            "text": "食事投稿"
+            "uri": "https://line.me/R/nv/cameraRoll/single"
             },
             "style": "primary",
             "height": "sm",
