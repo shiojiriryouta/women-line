@@ -2,4 +2,4 @@ Flask
 line-bot-sdk
 gunicorn
 openai
-dotenv
+python-dotenv
