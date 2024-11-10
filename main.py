@@ -80,7 +80,7 @@ def handle_message(event):
 # 画像メッセージのハンドラ
 @handler.add(MessageEvent, message=ImageMessage)
 def handle_image_message(event):
-    reply = TextSendMessage(text="美味しそうな料理ですね")
+    reply = TextSendMessage(text="美味しそうな料理だにゃーーーーーん！")
     line_bot_api.reply_message(
         event.reply_token,
         reply
