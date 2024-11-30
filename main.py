@@ -13,6 +13,7 @@ from linebot.models import (
 import json
 from openai import OpenAI
 from dotenv import load_dotenv
+import csv
 
 app = Flask(__name__)
 
@@ -60,6 +61,36 @@ def handle_message(event):
         reply = FlexSendMessage(alt_text = "不正解",contents = quiz_false)
     elif event.message.text == "ペットを見る":
         reply = FlexSendMessage(alt_text = "ペットの状態",contents = check_pet)
+    elif event.message.text[:4] == "quiz":
+        text_split = event.message.text.split()
+        # CSVファイルを読み込む
+        filename = "nuturition_quiz.csv"  # 同じディレクトリにあるファイル
+        row_index = int(text_split[1])  # 取得したい行（0-based index）
+        column_index = 2  # 取得したい列（0-based index）
+
+        with open(filename, mode="r", encoding="utf-8") as file:
+            reader = csv.reader(file)
+            rows = list(reader)  # CSVをリスト化
+
+        # 特定の行と列のデータを取得
+        if row_index < len(rows) and column_index < len(rows[row_index]):
+            data = rows[row_index][column_index] # 正解の選択肢を取得
+            feedback = rows[row_index][6] # フィードバックを取得
+            health_link = rows[row_index][7] # 関連リンクを取得
+            print(f"取得したデータ: {data}")
+            
+        else:
+            print("指定した行または列が存在しません。")
+        if data == text_split[2]:
+            quiz_true["body"]["contents"][1]["text"] = feedback
+            quiz_true["footer"]["contents"][0]["action"]["uri"] = health_link
+            reply = FlexSendMessage(alt_text = "正解",contents = quiz_true)
+        else:
+            quiz_false["body"]["contents"][1]["text"] = f"正解は{data}です！\n" + feedback
+            quiz_false["footer"]["contents"][0]["action"]["uri"] = health_link
+            reply = FlexSendMessage(alt_text = "不正解",contents = quiz_false)
+        
+        
     else:
         completion = client.chat.completions.create(
             model="gpt-4o-mini",
@@ -258,7 +289,7 @@ quiz_false = {
         },
         {
             "type": "text",
-            "text": "正解は[2] 運動器の障害です。\n\n運動器の障害のために移動機能の低下をきたした状態を 「ロコモティブシンドローム」＝ロコモといいます。",
+            "text": f"正解は[2] 運動器の障害です。\n\n運動器の障害のために移動機能の低下をきたした状態を 「ロコモティブシンドローム」＝ロコモといいます。",
             "wrap": True,
             "weight": "regular",
             "style": "normal",
@@ -278,7 +309,7 @@ quiz_false = {
             "type": "button",
             "action": {
             "type": "uri",
-            "label": "ロコモについて知る",
+            "label": "詳しく知る",
             "uri": "https://locomo-joa.jp/locomo"
             },
             "style": "primary",
@@ -361,7 +392,7 @@ quiz_true = {
             "type": "button",
             "action": {
             "type": "uri",
-            "label": "ロコモについて知る",
+            "label": "詳しく知る",
             "uri": "https://locomo-joa.jp/locomo"
             },
             "style": "primary",
